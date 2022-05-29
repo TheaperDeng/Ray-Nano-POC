@@ -1,47 +1,49 @@
 import os
 import ray
 from ray import tune
+
 from ray.tune.schedulers import ASHAScheduler
 from model_lightning import LightningMNISTClassifier
 
-
-def LightningTrainableCreator(model_creator):
+class LightningTrainable(tune.Trainable):
     '''
-    This is a creator for pytorch-lightning users to transform
+    This is a class for pytorch-lightning users to transform
     their lightning model to a trainable class.
     This creator will internally using an accelerated pytorch lightning
     trainer(bigdl.nano.pytorch.Trainer).
 
-    :param model_creator: a function that could take a config dict and
-           return a lightning module instance.
+    Users need to implement a `create_model` method in minimum
 
     A typical use is:
-    >>> trainable_class = LightningTrainableCreator(model_creator)
-    >>> analysis = tune.run(trainable_class, ...)
+    >>> class MyTrainable(LightningTrainable):
+    >>>     def create_model(self, config):
+    >>>         return PL_MODEL(config)
+    >>> 
+    >>> analysis = tune.run(MyTrainable, ...)
     '''
 
-    class PytorchLightningTrainable(tune.Trainable):
-        _model_creator = model_creator
+    # runtime_env for this trainable
+    runtime_env = {"env_vars":{"OMP_NUM_THREADS": "3"}}
 
-        def setup(self, config):
-            from bigdl.nano.pytorch import Trainer
-            self.model = PytorchLightningTrainable._model_creator(config=config)
-            self.trainer = Trainer(max_epochs=1, use_ipex=True)
+    def create_model(self, config):
+        raise NotImplementedError("Users need to implement this method")
 
-        def step(self):
-            self.trainer.fit(self.model)
-            valid_result = self.trainer.validate(self.model)
-            return valid_result[0]
+    def setup(self, config):
+        from bigdl.nano.pytorch import Trainer
+        self.model = self.create_model(config=config)
+        self.trainer = Trainer(max_epochs=1, use_ipex=True)
 
-    return PytorchLightningTrainable
+    def step(self):
+        self.trainer.fit(self.model)
+        valid_result = self.trainer.validate(self.model)
+        return valid_result[0]
 
-
-def model_creator(config):
-    return LightningMNISTClassifier(config,
+class MyTrainable(LightningTrainable):
+    def create_model(self, config):
+        return LightningMNISTClassifier(config,
                                     data_dir="/home/junweid/bug-reproduce/ray-lightningtrainable")
 
-
-if __name__ == "__main__":                
+if __name__ == "__main__":
     ray.init(num_cpus=6)
     config = {
         "layer_1_size": tune.choice([32, 64, 128]),
@@ -49,11 +51,10 @@ if __name__ == "__main__":
         "lr": tune.loguniform(1e-4, 1e-1),
         "batch_size": tune.choice([32, 64, 128]),
     }
-    TrainMNIST = LightningTrainableCreator(model_creator)
 
     sched = ASHAScheduler()
     analysis = tune.run(
-        TrainMNIST,
+        MyTrainable,
         metric="ptl/val_accuracy",
         mode="max",
         scheduler=sched,
