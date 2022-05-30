@@ -1,8 +1,16 @@
+66c66
+<     def get(self, trainable_cls):
+---
+>     def get(self, trainable_cls, placement_group_factory):
 68c68,72
 <         runtime_env = {"env_vars": {"TUNE_ORIG_WORKING_DIR": os.getcwd()}}
 ---
->         runtime_env = trainable_cls.runtime_env
+>         runtime_env = trainable_cls.get_runtime_env(placement_group_factory)
 >         if "env_vars" in runtime_env:
 >             runtime_env["env_vars"].update({"TUNE_ORIG_WORKING_DIR": os.getcwd()})
 >         else:
 >             runtime_env["env_vars"] = {"TUNE_ORIG_WORKING_DIR": os.getcwd()}
+308c312
+<         _actor_cls = _class_cache.get(trainable_cls)
+---
+>         _actor_cls = _class_cache.get(trainable_cls, trial.placement_group_factory)

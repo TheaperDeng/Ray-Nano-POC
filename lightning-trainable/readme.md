@@ -4,6 +4,13 @@ Tune support a trianable class api, while `tune.run` support a class input rathe
 
 A patch (`ray_trial_executor.patch`) is involved to set those env var(without KMP_AFFINITY) to each actor.
 
+## Key Features
+- Disable all best known methods to CPU if GPU is requested.
+- Could set all env var to actor under this API
+
+## TODO
+- need a python API to get the env var of `bigdl-nano-init`.
+- need to figure out ipex setting API, currently it's vary fragile.
 ## API design
 This is really an easy POC API design.
 ```python
@@ -28,7 +35,10 @@ class LightningTrainable(tune.Trainable):
 ## Example
 `model_lightning.py` contains a lightning model taken from an example in ray (https://docs.ray.io/en/releases-1.11.0/tune/tutorials/tune-pytorch-lightning.html)
 
-`lightning_trainable.py` contains the definition of `LightningTrainable` and a main program.
+`lightning_trainable.py` contains the definition of `LightningTrainable`.
+
+`main.py` contains a main program as example.
+
 ```bash
-python lightning_trainable.py
+python main.py
 ```
