@@ -7,9 +7,13 @@ from lightning_trainable import LightningTrainable
 
 
 class MyTrainable(LightningTrainable):
+
     def create_model(self, config):
         return LightningMNISTClassifier(config,
                                         data_dir="/home/junweid/bug-reproduce/ray-lightningtrainable")
+    
+    def configure_trainer(self):
+        return {"max_epochs": 2}
 
 if __name__ == "__main__":
     ray.init(num_cpus=6)

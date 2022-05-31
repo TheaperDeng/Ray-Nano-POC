@@ -27,12 +27,12 @@ class LightningTrainable(tune.Trainable):
         '''
         raise NotImplementedError("Users need to implement this method")
     
-    def configrate_trainer(self):
+    def configure_trainer(self):
         '''
         User can optionally overwrite this method.
         A default trainer setting will be {"max_epochs": 1}
 
-        `configrate_trainer` returns a dictionary to pytorch-lightining Trainer.
+        `configure_trainer` returns a dictionary to pytorch-lightining Trainer.
         Users may refer to https://pytorch-lightning.readthedocs.io/en/latest/common/trainer.html
         '''
         return {"max_epochs": 1}
@@ -48,7 +48,7 @@ class LightningTrainable(tune.Trainable):
         from bigdl.nano.pytorch import Trainer
 
         self.model = self.create_model(config=config)
-        trainer_config = self.configrate_trainer()
+        trainer_config = self.configure_trainer()
 
         resources = ray.cluster_resources()
         if "GPU" not in resources:
